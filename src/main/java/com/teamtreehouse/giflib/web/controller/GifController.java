@@ -11,12 +11,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.teamtreehouse.giflib.web.FlashMessage.Status.SUCCESS;
 
 @Controller
+@SuppressWarnings("Duplicates")
 public class GifController {
 
     @Autowired
@@ -27,8 +29,8 @@ public class GifController {
     // Home page - index of all GIFs
     @RequestMapping("/")
     public String listGifs(Model model) {
-        // TODO: Get all gifs
-        List<Gif> gifs = new ArrayList<>();
+        //Get all gifs
+        List<Gif> gifs = gifService.findAll();
 
         model.addAttribute("gifs", gifs);
         return "gif/index";
@@ -67,6 +69,7 @@ public class GifController {
     // Upload a new GIF
     @RequestMapping(value = "/gifs", method = RequestMethod.POST)
     public String addGif(Gif gif, @RequestParam(name = "file") MultipartFile file, RedirectAttributes redirectAttributes) {
+        //TODO: check gif
         //Upload new GIF if data is valid
         gifService.save(gif, file);
         redirectAttributes.addFlashAttribute("flash", new FlashMessage("GIF successfully uploaded!", SUCCESS));
@@ -78,16 +81,28 @@ public class GifController {
     @RequestMapping("/upload")
     public String formNewGif(Model model) {
         //Add model attributes needed for new GIF upload form
-        model.addAttribute("gif", new Gif());
+        if(!model.containsAttribute("gif")) {
+            model.addAttribute("gif", new Gif());
+        }
         model.addAttribute("categories", categoryService.findAll());
+        model.addAttribute("action", "/gifs");
+        model.addAttribute("heading", "Upload");
+        model.addAttribute("submit", "Add");
 
         return "gif/form";
     }
 
     // Form for editing an existing GIF
-    @RequestMapping(value = "/gifs/{dgifI}/edit")
+    @RequestMapping(value = "/gifs/{gifId}/edit")
     public String formEditGif(@PathVariable Long gifId, Model model) {
-        // TODO: Add model attributes needed for edit form
+        //Add model attributes needed for edit form
+        if(!model.containsAttribute("gif")) {
+            model.addAttribute("gif", gifService.findById(gifId));
+        }
+        model.addAttribute("categories", categoryService.findAll());
+        model.addAttribute("action", String.format("/gifs/%s", gifId));
+        model.addAttribute("heading", "Edit GIF");
+        model.addAttribute("submit", "Update");
 
         return "gif/form";
     }
@@ -103,20 +118,22 @@ public class GifController {
 
     // Delete an existing GIF
     @RequestMapping(value = "/gifs/{gifId}/delete", method = RequestMethod.POST)
-    public String deleteGif(@PathVariable Long gifId) {
-        // TODO: Delete the GIF whose id is gifId
-
-        // TODO: Redirect to app root
-        return null;
+    public String deleteGif(@PathVariable Long gifId, RedirectAttributes redirectAttributes) {
+        //Delete the GIF whose id is gifId
+        gifService.delete(gifService.findById(gifId));
+        redirectAttributes.addFlashAttribute("flash", new FlashMessage("GIF deleted!", SUCCESS));
+        //Redirect to app root
+        return "redirect:/";
     }
 
     // Mark/unmark an existing GIF as a favorite
     @RequestMapping(value = "/gifs/{gifId}/favorite", method = RequestMethod.POST)
-    public String toggleFavorite(@PathVariable Long gifId) {
-        // TODO: With GIF whose id is gifId, toggle the favorite field
-
-        // TODO: Redirect to GIF's detail view
-        return null;
+    public String toggleFavorite(@PathVariable Long gifId, HttpServletRequest httpServletRequest) {
+        //With GIF whose id is gifId, toggle the favorite field
+        Gif gif = gifService.findById(gifId);
+        gifService.toggleFavorite(gif);
+        //Redirect to GIF's detail view
+        return String.format("redirect:%s", httpServletRequest.getHeader("referer"));
     }
 
     // Search results
