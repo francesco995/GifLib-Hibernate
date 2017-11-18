@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "unused"})
 @Repository
 public class CategoryDaoImpl implements CategoryDao {
 
@@ -24,13 +24,17 @@ public class CategoryDaoImpl implements CategoryDao {
     }
 
     @Override
-    public Category findById() {
+    public Category findById(Long id) {
         return null;
     }
 
     @Override
     public void save(Category category) {
-
+        Session session = sessionFactory.openSession();
+        session.beginTransaction();
+        session.save(category);
+        session.getTransaction().commit();
+        session.close();
     }
 
     @Override
